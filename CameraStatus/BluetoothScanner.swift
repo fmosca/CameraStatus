@@ -1,16 +1,10 @@
-//
-//  BluetoothScanner.swift
-//  CameraStatus
-//
-//  Created by fra on 14/03/2025.
-//
-
 import Foundation
 import CoreBluetooth
 
 // Protocol for scanner to communicate with BLEManager
 protocol ScannerDelegate: AnyObject {
     func scannerDidUpdateCameras(_ cameras: [Camera])
+    func scannerDidStopScanning()
 }
 
 class BluetoothScanner {
@@ -69,6 +63,7 @@ class BluetoothScanner {
         centralManager.stopScan()
         timeoutTimer?.invalidate()
         print("Scanner stopped scanning")
+        delegate?.scannerDidStopScanning()
     }
     
     // Start periodic scanning
@@ -97,21 +92,38 @@ class BluetoothScanner {
     func handleDiscoveredPeripheral(_ peripheral: CBPeripheral, advertisementData: [String : Any], rssi: NSNumber) {
         let peripheralId = peripheral.identifier.uuidString
         
-        // For debugging - log all discovered devices with their names
+        // Early check if this might be a camera to reduce noise
+        var mightBeCamera = false
         if let name = peripheral.name {
-            print("Discovered device: \(name) (UUID: \(peripheralId), RSSI: \(rssi.intValue))")
+            // Check if the name contains "BJ8A", "EM5", "GR_", "Camera", etc.
+            mightBeCamera = name.contains("BJ8A") ||
+                           name.contains("E-M5") ||
+                           name.contains("GR_") ||
+                           name.contains("Camera") ||
+                           name.contains("Olympus") ||
+                           name.contains("Ricoh")
         }
         
         // Loop through camera identifiers to see if any can identify this peripheral
         for identifier in cameraIdentifiers {
             if identifier.canIdentifyCamera(peripheral: peripheral, advertisementData: advertisementData) {
                 if let camera = identifier.createCamera(peripheral: peripheral, rssi: rssi) {
+                    // Only log when we actually find a camera
+                    print("Found camera: \(camera.name) (UUID: \(peripheralId), RSSI: \(rssi.intValue))")
+                    
                     // Use the dictionary to ensure uniqueness
                     cameraDict[peripheralId] = camera
-                    print("Found camera: \(camera.name) (UUID: \(peripheralId), RSSI: \(rssi.intValue))")
                     break
                 }
+                
+                // If identified as a camera but couldn't create it, still flag as camera
+                mightBeCamera = true
             }
+        }
+        
+        // Only log devices that might be cameras
+        if mightBeCamera, let name = peripheral.name {
+            print("Possible camera device: \(name) (UUID: \(peripheralId), RSSI: \(rssi.intValue))")
         }
         
         // If we have at least 2 cameras, stop scanning
@@ -120,7 +132,6 @@ class BluetoothScanner {
             stopScanning()
         }
     }
-    
     deinit {
         stopPeriodicScanning()
     }
