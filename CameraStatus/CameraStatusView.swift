@@ -51,6 +51,17 @@ struct CameraStatusView: View {
                         .foregroundColor(.secondary)
                 }
                 .padding(.vertical, 5)
+            } else if bleManager.isPoweringOn {
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack {
+                        ProgressView()
+                        Text(bleManager.powerOnStatus)
+                    }
+                    Text("Communicating with the Olympus EM5 camera...")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 5)
             } else if bleManager.cameras.isEmpty {
                 VStack(alignment: .leading, spacing: 5) {
                     Text("No cameras detected")
@@ -69,16 +80,31 @@ struct CameraStatusView: View {
                         
                         ForEach(Array(bleManager.cameras), id: \.id) { camera in
                             HStack {
-                                Image(systemName: "camera")
-                                    .foregroundColor(.blue)
                                 VStack(alignment: .leading) {
-                                    Text(camera.name)
-                                        .fontWeight(.medium)
+                                    HStack {
+                                        Image(systemName: "camera")
+                                            .foregroundColor(.blue)
+                                        Text(camera.name)
+                                            .fontWeight(.medium)
+                                    }
                                     Text("Signal: \(camera.rssi) dBm • Last updated: \(timeAgo(date: camera.lastSeen))")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
                                 Spacer()
+                                
+                                // Only show power button for EM5 cameras
+                                if camera.name.contains("BJ8A15412") || camera.name.contains("E-M5MKIII") {
+                                    Button(action: {
+                                        bleManager.powerOnCamera(camera: camera)
+                                    }) {
+                                        Image(systemName: "bolt.horizontal.circle")
+                                            .foregroundColor(.blue)
+                                            .frame(width: 24, height: 24)
+                                    }
+                                    .buttonStyle(BorderlessButtonStyle())
+                                    .disabled(bleManager.isPoweringOn)
+                                }
                             }
                             .padding(8)
                             .background(Color.gray.opacity(0.1))
