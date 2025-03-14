@@ -29,9 +29,25 @@
 		270E12DD2D7F24EC007E4325 /* CameraStatusUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CameraStatusUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		275FDA552D7F376C0031DD56 /* Exceptions for "CameraStatus" folder in "CameraStatus" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 270E12C12D7F24EB007E4325 /* CameraStatus */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		270E12C42D7F24EB007E4325 /* CameraStatus */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				275FDA552D7F376C0031DD56 /* Exceptions for "CameraStatus" folder in "CameraStatus" target */,
+			);
+			explicitFileTypes = {
+				Info.plist = text.xml;
+			};
 			path = CameraStatus;
 			sourceTree = "<group>";
 		};
@@ -399,6 +415,11 @@
 				DEVELOPMENT_ASSET_PATHS = "\"CameraStatus/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CameraStatus/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "CameraStatus needs Bluetooth to detect nearby cameras";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "CameraStatus needs Bluetooth to detect nearby cameras";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -424,6 +445,11 @@
 				DEVELOPMENT_ASSET_PATHS = "\"CameraStatus/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CameraStatus/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "CameraStatus needs Bluetooth to detect nearby cameras";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "CameraStatus needs Bluetooth to detect nearby cameras";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
