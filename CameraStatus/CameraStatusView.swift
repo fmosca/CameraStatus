@@ -41,15 +41,25 @@ struct CameraStatusView: View {
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding()
             } else if bleManager.isScanning {
-                HStack {
-                    ProgressView()
-                    Text("Scanning for cameras...")
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack {
+                        ProgressView()
+                        Text("Scanning for cameras...")
+                    }
+                    Text("This may take up to 25 seconds for cameras with long broadcast intervals")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
                 .padding(.vertical, 5)
             } else if bleManager.cameras.isEmpty {
-                Text("No cameras detected")
-                    .foregroundColor(.secondary)
-                    .padding(.vertical, 5)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("No cameras detected")
+                        .foregroundColor(.secondary)
+                    Text("Try rescanning or verify your camera is in discoverable mode")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 5)
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 8) {
@@ -80,7 +90,7 @@ struct CameraStatusView: View {
             }
         }
         .padding()
-        .frame(width: 300)
+        .frame(width: 320)  // Slightly wider to accommodate the new text
         .onAppear {
             // Schedule a delay before starting periodic scanning
             // This allows the view to fully appear before potentially showing permissions
@@ -101,21 +111,5 @@ struct CameraStatusView: View {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: date, relativeTo: Date())
-    }
-}
-struct Camera: Identifiable, Hashable {
-    let id: String // Immutable UUID string
-    let name: String
-    let isAvailable: Bool
-    let rssi: Int
-    let lastSeen: Date
-    
-    // Hashable implementation
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    static func == (lhs: Camera, rhs: Camera) -> Bool {
-        return lhs.id == rhs.id
     }
 }

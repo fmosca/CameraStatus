@@ -10,6 +10,7 @@ class BLEManager: NSObject, ObservableObject {
     @Published var isScanning = false
     @Published var bluetoothState: String = "Unknown"
     @Published var isBluetoothReady = false
+    private var foundAllCameras = false
     
     private var centralManager: CBCentralManager!
     private var scanTimer: Timer?
@@ -19,6 +20,13 @@ class BLEManager: NSObject, ObservableObject {
     private let knownCameraUUIDs = [
         "10763D9D-22B1-A168-8B62-2CA083E3BE4F"  // Your GR_5A9E88 camera
         // Add more camera UUIDs here as you discover them
+    ]
+    
+    // The camera names to look for
+    private let knownCameraNames = [
+        "BJ8A15412",         // EM5mkIII camera from Python script
+        "E-M5MKIII-P-BJ8A15412", // Alternative name format
+        "GR_5A9E88"          // Your existing camera
     ]
     
     override init() {
@@ -37,14 +45,20 @@ class BLEManager: NSObject, ObservableObject {
         }
         
         isScanning = true
-        print("Starting scan for cameras...")
+        foundAllCameras = false
+        print("Starting scan for cameras with extended duration...")
         
-        // Start scanning
-        centralManager.scanForPeripherals(withServices: nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
+        // Use CBCentralManagerScanOptionAllowDuplicatesKey: true to catch intermittent advertisements
+        centralManager.scanForPeripherals(
+            withServices: nil,
+            options: [
+                CBCentralManagerScanOptionAllowDuplicatesKey: true
+            ]
+        )
         
-        // Set a timeout timer to stop scanning if nothing is found within 10 seconds
+        // Set a timeout timer to stop scanning after 25 seconds
         timeoutTimer?.invalidate()
-        timeoutTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: false) { [weak self] _ in
+        timeoutTimer = Timer.scheduledTimer(withTimeInterval: 25.0, repeats: false) { [weak self] _ in
             self?.stopScanning()
         }
     }
@@ -59,7 +73,7 @@ class BLEManager: NSObject, ObservableObject {
     }
     
     // Start periodic scanning
-    func startPeriodicScanning(interval: TimeInterval = 30.0) {
+    func startPeriodicScanning(interval: TimeInterval = 60.0) {
         // Invalidate any existing timer
         scanTimer?.invalidate()
         
@@ -84,6 +98,22 @@ class BLEManager: NSObject, ObservableObject {
         scanTimer?.invalidate()
         scanTimer = nil
         stopScanning()
+    }
+    
+    // Helper function to check if a peripheral is a known camera by name
+    private func isKnownCamera(peripheral: CBPeripheral) -> Bool {
+        guard let name = peripheral.name else {
+            return isKnownCamera(peripheralId: peripheral.identifier.uuidString)
+        }
+        
+        // Check if the name contains any of our known camera names
+        for cameraName in knownCameraNames {
+            if name.contains(cameraName) {
+                return true
+            }
+        }
+        
+        return isKnownCamera(peripheralId: peripheral.identifier.uuidString)
     }
     
     // Helper function to check if a peripheral is a known camera
@@ -140,10 +170,15 @@ extension BLEManager: CBCentralManagerDelegate {
     
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
         let peripheralId = peripheral.identifier.uuidString
-        let name = peripheral.name ?? "Camera (\(peripheralId.suffix(6)))"
-        
-        // Only process devices that match our known camera UUIDs
-        if isKnownCamera(peripheralId: peripheralId) {
+
+        // For debugging - log all discovered devices with their names
+        if let name = peripheral.name {
+            print("Discovered device: \(name) (UUID: \(peripheralId), RSSI: \(RSSI.intValue))")
+        }
+
+        // Check if this is a known camera by name or UUID
+        if isKnownCamera(peripheral: peripheral) {
+            let name = peripheral.name ?? "Camera (\(peripheralId.suffix(6)))"
             print("Found camera: \(name) (UUID: \(peripheralId), RSSI: \(RSSI.intValue))")
             
             // Use the dictionary to ensure uniqueness
@@ -160,8 +195,14 @@ extension BLEManager: CBCentralManagerDelegate {
                 // This automatically replaces any existing entry with the same key
                 self.cameraDict[peripheralId] = camera
                 
-                // Stop scanning once we've found all our cameras
-                if self.cameraDict.count >= self.knownCameraUUIDs.count {
+                // Stop scanning if we've found both cameras (using names to check, not UUIDs)
+                let foundCameraNames = Set(self.cameras.map { $0.name })
+                let foundNameCount = self.knownCameraNames.filter { cameraName in
+                    foundCameraNames.contains { $0.contains(cameraName) }
+                }.count
+                
+                // If we have at least 2 cameras or found all our named cameras, stop scanning
+                if self.cameras.count >= 2 || foundNameCount >= self.knownCameraNames.count {
                     print("All cameras found, stopping scan")
                     self.stopScanning()
                 }

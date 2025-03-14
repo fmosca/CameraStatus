@@ -1,3 +1,12 @@
+//
+//  Camera.swift
+//  CameraStatus
+//
+//  Created by fra on 14/03/2025.
+//
+import SwiftUI
+
+
 struct Camera: Identifiable, Hashable {
     let id: String // Immutable UUID string
     let name: String
