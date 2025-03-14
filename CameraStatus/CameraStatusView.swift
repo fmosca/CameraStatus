@@ -2,6 +2,15 @@ import SwiftUI
 
 struct CameraStatusView: View {
     @StateObject private var bleManager = BLEManager()
+    @StateObject private var viewModel: CameraWiFiViewModel
+    
+    init() {
+        // Initialize the bleManager first
+        let bleManager = BLEManager()
+        // Then create the view model with the bleManager
+        _bleManager = StateObject(wrappedValue: bleManager)
+        _viewModel = StateObject(wrappedValue: CameraWiFiViewModel(bleManager: bleManager))
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -23,6 +32,27 @@ struct CameraStatusView: View {
                 .disabled(!bleManager.isBluetoothReady)
             }
             .padding(.bottom, 5)
+            
+            // WiFi status line
+            if let connectedNetwork = viewModel.connectedNetwork {
+                HStack {
+                    Image(systemName: "wifi")
+                        .foregroundColor(.green)
+                    Text("Connected to: \(connectedNetwork)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.bottom, 5)
+            } else {
+                HStack {
+                    Image(systemName: "wifi.slash")
+                        .foregroundColor(.gray)
+                    Text("Not connected to WiFi")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.bottom, 5)
+            }
             
             if !bleManager.isBluetoothReady {
                 VStack(alignment: .center, spacing: 10) {
@@ -62,7 +92,7 @@ struct CameraStatusView: View {
                         .foregroundColor(.secondary)
                 }
                 .padding(.vertical, 5)
-            } else if bleManager.cameras.isEmpty {
+            } else if viewModel.camerasWithWiFiStatus.isEmpty {
                 VStack(alignment: .leading, spacing: 5) {
                     Text("No cameras detected")
                         .foregroundColor(.secondary)
@@ -74,29 +104,34 @@ struct CameraStatusView: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Found \(bleManager.cameras.count) cameras")
+                        Text("Found \(viewModel.camerasWithWiFiStatus.count) cameras")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
-                        ForEach(Array(bleManager.cameras), id: \.id) { camera in
+                        ForEach(viewModel.camerasWithWiFiStatus, id: \.camera.id) { cameraWithWiFi in
                             HStack {
                                 VStack(alignment: .leading) {
                                     HStack {
                                         Image(systemName: "camera")
                                             .foregroundColor(.blue)
-                                        Text(camera.name)
+                                        Text(cameraWithWiFi.camera.name)
                                             .fontWeight(.medium)
                                     }
-                                    Text("Signal: \(camera.rssi) dBm • Last updated: \(timeAgo(date: camera.lastSeen))")
+                                    Text("Signal: \(cameraWithWiFi.camera.rssi) dBm • Last updated: \(timeAgo(date: cameraWithWiFi.camera.lastSeen))")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
                                 Spacer()
                                 
-                                // Only show power button for EM5 cameras
-                                if camera.name.contains("BJ8A15412") || camera.name.contains("E-M5MKIII") {
+                                // WiFi status icon
+                                Image(systemName: cameraWithWiFi.wifiAvailable ? "wifi" : "wifi.slash")
+                                    .foregroundColor(cameraWithWiFi.wifiAvailable ? .green : .gray)
+                                    .frame(width: 24, height: 24)
+                                
+                                // Power button for EM5 cameras
+                                if cameraWithWiFi.camera.name.contains("BJ8A15412") || cameraWithWiFi.camera.name.contains("E-M5MKIII") {
                                     Button(action: {
-                                        bleManager.powerOnCamera(camera: camera)
+                                        bleManager.powerOnCamera(camera: cameraWithWiFi.camera)
                                     }) {
                                         Image(systemName: "bolt.horizontal.circle")
                                             .foregroundColor(.blue)
@@ -116,10 +151,9 @@ struct CameraStatusView: View {
             }
         }
         .padding()
-        .frame(width: 320)  // Slightly wider to accommodate the new text
+        .frame(width: 340)  // Wider to accommodate the WiFi status
         .onAppear {
             // Schedule a delay before starting periodic scanning
-            // This allows the view to fully appear before potentially showing permissions
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 if bleManager.isBluetoothReady {
                     bleManager.startPeriodicScanning()

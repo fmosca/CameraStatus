@@ -45,5 +45,7 @@
     </dict>
     <key>NSMainStoryboardFile</key>
     <string>Main</string>
+    <key>NSLocationUsageDescription</key>
+    <string>CameraStatus needs to access your location to determine your current WiFi network</string>
 </dict>
 </plist>
